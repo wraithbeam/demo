@@ -1,32 +1,26 @@
 package com.example.demo.controllers;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableArray;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.shape.Path;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.apache.commons.lang3.ArrayUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 public class MainController {
 
@@ -74,25 +68,22 @@ public class MainController {
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
         if (files != null) {
-            byte[] finalByteCode = "NmQW!#g*ao4{".getBytes();
+            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes();
             for (File file : files) {
                 try {
-                    byte[] fileName = ("fn(" + file.getName() + ")").getBytes(); //fn(text.txt)
-
+                    byte[] fileName = (file.getName() + "zr8ZTm").getBytes(); //fn(text.txt)
                     byte[] fileContent = Files.readAllBytes(file.toPath());
-                    fileContent = joinByteArray("co(".getBytes(), fileContent);
-                    fileContent = joinByteArray(fileContent, ")".getBytes());   //co(text123)
+
+                    fileContent = joinByteArray(fileName, fileContent);   //co(text123)
 
                     //TODO Написать дату изменения
 
-                    finalByteCode = joinByteArray(finalByteCode, fileName);
                     finalByteCode = joinByteArray(finalByteCode, fileContent);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
             try {
-                finalByteCode = joinByteArray(finalByteCode, "}$$$###***&&&".getBytes());
                 Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -115,49 +106,32 @@ public class MainController {
 
     @FXML
     void extractFiles(MouseEvent event) {
-//        DirectoryChooser directoryChooser = new DirectoryChooser();
-//        directoryChooser.setTitle("Select Directory");
-//        File directory = directoryChooser.showDialog(new Stage());
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Select Directory");
+        File directory = directoryChooser.showDialog(new Stage());
 
+        String[] filesInfo = getHiddenFilesInformation();
 
-        FileInputStream fileInputStream = null;
-        try {
-            fileInputStream = new FileInputStream(archive);
-
-            ArrayList<String> fileName = new ArrayList<>();
-            ArrayList<String> fileContent = new ArrayList<>();
-            ArrayList<Character> fullText = new ArrayList<>();
-
-            char[] key = {'N','m','Q','W','!','#','g','*','a','o','4',};
-
-            int i = 0;
-            int j = 0;
-            while((i = fileInputStream.read())!= -1){
-                char s = (char) i;
-                if(j == 10){
-                    i = fileInputStream.read();
-                    while (true){
-                        s = (char) i;
-                        System.out.print(s);
-                        fullText.add(s);
-                        if(s == '}')
-                            break;
-                        i = fileInputStream.read();
-                    }
-                    break;
-                }
-                if(s == key[j])
-                    j++;
-                else
-                    j = 0;
-
+        for (String file : filesInfo){
+            System.out.println(file);
+            String[] params = file.split("zr8ZTm");
+            File extractableFile = new File(directory.getAbsolutePath()+ "\\" + params[0]);
+            try {
+                Files.write((extractableFile.toPath()), (params[1]).getBytes() );
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        }
+    }
 
-            System.out.println(fullText);
+    private String[] getHiddenFilesInformation(){
+        try {
+            String content = new String(Files.readAllBytes(archive.toPath()));
+            String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
+            filesInfo = ArrayUtils.remove(filesInfo, 0);
 
-            fileInputStream.close();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            return filesInfo;
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -172,6 +146,11 @@ public class MainController {
                 new FileChooser.ExtensionFilter("Zip Files", "*.zip"),
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         archive = fileChooser.showOpenDialog(new Stage());
+        try {
+            System.out.println(new String(Files.readAllBytes(archive.toPath())));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         showArchiveInTable();
     }
 
