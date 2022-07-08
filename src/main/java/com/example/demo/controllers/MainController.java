@@ -74,7 +74,7 @@ public class MainController {
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
         if (files != null) {
-            byte[] finalByteCode = "$$$###***&&&{".getBytes();
+            byte[] finalByteCode = "NmQW!#g*ao4{".getBytes();
             for (File file : files) {
                 try {
                     byte[] fileName = ("fn(" + file.getName() + ")").getBytes(); //fn(text.txt)
@@ -83,17 +83,19 @@ public class MainController {
                     fileContent = joinByteArray("co(".getBytes(), fileContent);
                     fileContent = joinByteArray(fileContent, ")".getBytes());   //co(text123)
 
-//TODO Написать дату изменения
+                    //TODO Написать дату изменения
 
-
-
-                    Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
-
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(e);
+                    finalByteCode = joinByteArray(finalByteCode, fileName);
+                    finalByteCode = joinByteArray(finalByteCode, fileContent);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+            }
+            try {
+                finalByteCode = joinByteArray(finalByteCode, "}$$$###***&&&".getBytes());
+                Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -124,13 +126,34 @@ public class MainController {
 
             ArrayList<String> fileName = new ArrayList<>();
             ArrayList<String> fileContent = new ArrayList<>();
+            ArrayList<Character> fullText = new ArrayList<>();
+
+            char[] key = {'N','m','Q','W','!','#','g','*','a','o','4',};
 
             int i = 0;
-            while((i=fileInputStream.read())!= -1){
+            int j = 0;
+            while((i = fileInputStream.read())!= -1){
+                char s = (char) i;
+                if(j == 10){
+                    i = fileInputStream.read();
+                    while (true){
+                        s = (char) i;
+                        System.out.print(s);
+                        fullText.add(s);
+                        if(s == '}')
+                            break;
+                        i = fileInputStream.read();
+                    }
+                    break;
+                }
+                if(s == key[j])
+                    j++;
+                else
+                    j = 0;
 
             }
 
-            System.out.println(fileName);
+            System.out.println(fullText);
 
             fileInputStream.close();
         } catch (FileNotFoundException e) {
@@ -139,6 +162,7 @@ public class MainController {
             throw new RuntimeException(e);
         }
     }
+
 
     @FXML
     void openArchive(ActionEvent event) {
