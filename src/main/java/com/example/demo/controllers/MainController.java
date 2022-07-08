@@ -12,12 +12,14 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.shape.Path;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,35 +73,26 @@ public class MainController {
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
-        archive = new File("C:\\Users\\vlad\\Desktop\\zip1.zip");
         if (files != null) {
+            byte[] finalByteCode = "$$$###***&&&{".getBytes();
             for (File file : files) {
                 try {
+                    byte[] fileName = ("fn(" + file.getName() + ")").getBytes(); //fn(text.txt)
+
                     byte[] fileContent = Files.readAllBytes(file.toPath());
-                    Files.write(archive.toPath(), fileContent, StandardOpenOption.APPEND);
+                    fileContent = joinByteArray("co(".getBytes(), fileContent);
+                    fileContent = joinByteArray(fileContent, ")".getBytes());   //co(text123)
+
+//TODO Написать дату изменения
+
+
+
+                    Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
 
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-//                }
-//                try {
-//                    ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(archive));
-//                    FileInputStream fileInputStream = new FileInputStream(file);
-//
-//                    ZipEntry zipEntry = new ZipEntry("Popa.txt");
-//                    zipOutputStream.putNextEntry(zipEntry);
-//                    byte[] buffer = new byte[fileInputStream.available()];
-//                    fileInputStream.read(buffer);
-//                    zipOutputStream.write(buffer);
-//                    zipOutputStream.closeEntry();
-//                    zipOutputStream.close();
-//                    fileInputStream.close();
-//
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-
                 }
             }
         }
@@ -110,7 +103,6 @@ public class MainController {
                 .put(byte1)
                 .put(byte2)
                 .array();
-
     }
 
 
@@ -121,7 +113,31 @@ public class MainController {
 
     @FXML
     void extractFiles(MouseEvent event) {
+//        DirectoryChooser directoryChooser = new DirectoryChooser();
+//        directoryChooser.setTitle("Select Directory");
+//        File directory = directoryChooser.showDialog(new Stage());
 
+
+        FileInputStream fileInputStream = null;
+        try {
+            fileInputStream = new FileInputStream(archive);
+
+            ArrayList<String> fileName = new ArrayList<>();
+            ArrayList<String> fileContent = new ArrayList<>();
+
+            int i = 0;
+            while((i=fileInputStream.read())!= -1){
+
+            }
+
+            System.out.println(fileName);
+
+            fileInputStream.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @FXML
