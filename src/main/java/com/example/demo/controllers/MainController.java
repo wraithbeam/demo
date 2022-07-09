@@ -13,10 +13,10 @@ import javafx.stage.Stage;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
@@ -59,6 +59,24 @@ public class MainController {
 
     //Not FX variables
     private File archive = new File("C:\\Users\\vlad\\Desktop\\zip1.zip");
+    @FXML
+    void exit(ActionEvent event) {
+
+    }
+
+    @FXML
+    void openArchive(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Resource File");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Zip Files", "*.zip"),
+        archive = fileChooser.showOpenDialog(new Stage());
+
+        showArchiveInTable();
+    }
+    private void showArchiveInTable(){
+
+    }
 
     @FXML
     void addFiles(MouseEvent event) {
@@ -67,11 +85,14 @@ public class MainController {
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
+
+        Charset charset = StandardCharsets.ISO_8859_1;
+
         if (files != null) {
-            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes();
+            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(charset);
             for (File file : files) {
                 try {
-                    byte[] fileName = (file.getName() + "zr8ZTm").getBytes(); //fn(text.txt)
+                    byte[] fileName = (file.getName() + "zr8ZTm").getBytes(charset); //fn(text.txt)
                     byte[] fileContent = Files.readAllBytes(file.toPath());
 
                     fileContent = joinByteArray(fileName, fileContent);   //co(text123)
@@ -99,11 +120,6 @@ public class MainController {
     }
 
 
-        @FXML
-    void exit(ActionEvent event) {
-
-    }
-
     @FXML
     void extractFiles(MouseEvent event) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -113,11 +129,10 @@ public class MainController {
         String[] filesInfo = getHiddenFilesInformation();
 
         for (String file : filesInfo){
-            System.out.println(file);
             String[] params = file.split("zr8ZTm");
             File extractableFile = new File(directory.getAbsolutePath()+ "\\" + params[0]);
             try {
-                Files.write((extractableFile.toPath()), (params[1]).getBytes() );
+                Files.writeString((extractableFile.toPath()), params[1], StandardCharsets.ISO_8859_1);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -126,7 +141,7 @@ public class MainController {
 
     private String[] getHiddenFilesInformation(){
         try {
-            String content = new String(Files.readAllBytes(archive.toPath()));
+            String content = new String(Files.readAllBytes(archive.toPath()), StandardCharsets.ISO_8859_1);
             String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
             filesInfo = ArrayUtils.remove(filesInfo, 0);
 
@@ -135,60 +150,6 @@ public class MainController {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-
-    @FXML
-    void openArchive(ActionEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Open Resource File");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Zip Files", "*.zip"),
-                new FileChooser.ExtensionFilter("All Files", "*.*"));
-        archive = fileChooser.showOpenDialog(new Stage());
-        try {
-            System.out.println(new String(Files.readAllBytes(archive.toPath())));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        showArchiveInTable();
-    }
-
-    private void showArchiveInTable(){
-
-        try {
-            FileInputStream fileInputStream = new FileInputStream(archive);
-            int i;
-            while((i=fileInputStream.read())!= -1){
-
-                System.out.print((char)i);
-            }
-            fileInputStream.close();
-            System.out.println("");
-
-            System.out.println(archive.getAbsolutePath());
-
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-
-//        try {
-//            ZipInputStream zis = new ZipInputStream(new FileInputStream(archive.getAbsolutePath()));
-//
-//            ZipEntry zipEntry;
-//            while((zipEntry=zis.getNextEntry())!=null){
-//                System.out.printf("File name: %s \t File size: %d \n",zipEntry.getName(), zipEntry.getSize());
-//            }
-//
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//        catch (Exception e){
-//            System.out.println(e);
-//        }
     }
 
     @FXML
