@@ -284,6 +284,7 @@ public class MainController {
             String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
             filesInfo = ArrayUtils.remove(filesInfo, 1);
             Files.write(archive.toPath(), filesInfo[0].getBytes(StandardCharsets.ISO_8859_1));
+            tableShowArchive();
         }
         catch (Exception e){
             throw new RuntimeException(e);
