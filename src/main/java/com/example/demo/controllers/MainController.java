@@ -10,6 +10,9 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -225,7 +228,18 @@ public class MainController {
 
     @FXML
     void saveAs(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select File to save");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Zip Files", "*.zip")
+        );
+        File file = fileChooser.showOpenDialog(new Stage());
 
+        try {
+            Files.write(file.toPath(), Files.readAllBytes(archive.toPath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @FXML
@@ -234,6 +248,9 @@ public class MainController {
         tableColumnName.setCellValueFactory(new PropertyValueFactory<FileFX, String>("name"));
         tableColumnSize.setCellValueFactory(new PropertyValueFactory<FileFX, String>("size"));
         tableColumnLastUpdate.setCellValueFactory(new PropertyValueFactory<FileFX, String>("lastUpdate"));
+
+        menuBtnOpenArchive.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
+        menuBtnSaveAs.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
     }
 
 }
