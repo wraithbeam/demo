@@ -72,10 +72,6 @@ public class MainController {
 
     //Not FX variables
     private File archive = new File("C:\\Users\\vlad\\Desktop\\zip1.zip");
-    @FXML
-    void exit(ActionEvent event) {
-
-    }
 
     @FXML
     void openArchive(ActionEvent event) {
@@ -222,11 +218,6 @@ public class MainController {
     }
 
     @FXML
-    void save(ActionEvent event) {
-
-    }
-
-    @FXML
     void saveAs(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select File to save");
@@ -251,6 +242,11 @@ public class MainController {
 
         menuBtnOpenArchive.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
         menuBtnSaveAs.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
+    }
+
+    @FXML
+    void exit(ActionEvent event) {
+        System.exit(0);
     }
 
 }

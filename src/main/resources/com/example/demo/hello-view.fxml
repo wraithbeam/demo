@@ -18,7 +18,6 @@
             <items>
               <MenuItem fx:id="menuBtnOpenArchive" mnemonicParsing="false" onAction="#openArchive" text="Open archive" />
                   <SeparatorMenuItem mnemonicParsing="false" />
-                  <MenuItem fx:id="menuBtnSave" mnemonicParsing="false" onAction="#save" text="Save" />
                   <MenuItem fx:id="menuBtnSaveAs" mnemonicParsing="false" onAction="#saveAs" text="Save as..." />
                   <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem fx:id="menuBtnExit" mnemonicParsing="false" onAction="#exit" text="Exit" />
