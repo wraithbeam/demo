@@ -70,9 +70,14 @@ public class MainController {
 
     private ObservableList<FileFX> filesFX = FXCollections.observableArrayList();
 
-    //Not FX variables
-    private File archive = new File("C:\\Users\\vlad\\Desktop\\zip1.zip");
+    /**
+     * Отображаемый архив
+     */
+    private File archive;
 
+    /**
+     * Запускает форму выбора файла, а затем отображеат ее в таблице
+     */
     @FXML
     void openArchive(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -94,18 +99,16 @@ public class MainController {
         for (FileFX fileFX : getHiddenFilesFromArchive()){
             filesFX.add(fileFX);
         }
-
+        //Запонение таблицы + активация кнопок управления
         tableInfo.setItems(filesFX);
         buttonAdd.setDisable(false);
         buttonExtract.setDisable(false);
     }
 
-    private void tableAddElement(FileFX fileFX){
-        filesFX.add(fileFX);
-        tableInfo.setItems(filesFX);
-    }
-
-
+    /**
+     * Достает данные из архива, помещая их в ArrayList
+     * @return ArrayList<FileFX> - содержит всю информацию для отображения в таблице
+     */
     private ArrayList<FileFX> getFilesFromArchive(){
         try(ZipInputStream zin = new ZipInputStream(new FileInputStream(archive)))
         {
@@ -120,6 +123,10 @@ public class MainController {
         }
     }
 
+    /**
+     * Достает СКРЫТЫЕ данные из архива, помещая их в ArrayList
+     * @return ArrayList<FileFX> - содержит всю информацию для отображения в таблице
+     */
     private ArrayList<FileFX> getHiddenFilesFromArchive(){
         ArrayList<FileFX> filesFX = new ArrayList<>();
         for (String info : getInformationAboutHiddenFiles()){
@@ -136,6 +143,11 @@ public class MainController {
         return filesFX;
     }
 
+
+    /**
+     * Отображает форму множественного выбора файлов,
+     * затем с помощью массивов byte встраивает информацию в архив
+     */
     @FXML
     void addFiles(MouseEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -144,31 +156,37 @@ public class MainController {
                 new FileChooser.ExtensionFilter("All Files", "*.*"));
         List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
 
-        Charset charset = StandardCharsets.ISO_8859_1;
+        Charset charset = StandardCharsets.ISO_8859_1; //Кодировка для передачи файлов
 
         if (files != null) {
-            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(charset);
+            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(charset); //Ключ для поиска данных
+            String keySeparator = "zr8ZTm"; //Ключ, разделяющий поля, описывающий файл: название, вес и т.п.
             for (File file : files) {
                 try {
                     FileFX fileFX = new FileFX(file, true);
-                    filesFX.add(fileFX);
 
-                    byte[] fileName = (file.getName() + "zr8ZTm").getBytes(charset);
-                    byte[] lastUpdate = (file.lastModified() + "zr8ZTm").getBytes(charset);
-                    byte[] fileSize = (file.length() + "zr8ZTm").getBytes(charset);
+
+                    //Данные, разграниченные ключом
+                    byte[] fileName = (file.getName() + keySeparator).getBytes(charset);
+                    byte[] lastUpdate = (file.lastModified() + keySeparator).getBytes(charset);
+                    byte[] fileSize = (file.length() + keySeparator).getBytes(charset);
                     byte[] fileContent = Files.readAllBytes(file.toPath());
 
+                    //Объединение данных в один массив для внедрения в архив
                     byte[] fileInfo = new byte[1];
                     fileInfo = joinByteArray(fileName, lastUpdate);
                     fileInfo = joinByteArray(fileInfo, fileSize);
                     fileInfo = joinByteArray(fileInfo, fileContent);
 
+                    //Формирование кода вставки
                     finalByteCode = joinByteArray(finalByteCode, fileInfo);
+                    filesFX.add(fileFX); //Добавление файла в таблицу
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
             try {
+                //Внедрение байтового кода в архив
                 Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -176,6 +194,13 @@ public class MainController {
 
         }
     }
+
+    /**
+     * Соеденяет 2 массива byte в один. В порядке отправления
+     * @param byte1
+     * @param byte2
+     * @return byte[] - соедененный массив
+     */
     private byte[] joinByteArray(byte[] byte1, byte[] byte2) {
 
         return ByteBuffer.allocate(byte1.length + byte2.length)
@@ -185,6 +210,9 @@ public class MainController {
     }
 
 
+    /**
+     * Извлекает файлы в выбранную директорию
+     */
     @FXML
     void extractFiles(MouseEvent event) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -192,9 +220,10 @@ public class MainController {
         File directory = directoryChooser.showDialog(new Stage());
 
         String[] filesInfo = getInformationAboutHiddenFiles();
+        String keySeparator = "zr8ZTm";
 
         for (String file : filesInfo){
-            String[] params = file.split("zr8ZTm");
+            String[] params = file.split(keySeparator);
             File extractableFile = new File(directory.getAbsolutePath()+ "\\" + params[0]);
             try {
                 Files.writeString((extractableFile.toPath()), params[3], StandardCharsets.ISO_8859_1);
@@ -204,6 +233,10 @@ public class MainController {
         }
     }
 
+
+    /**
+     * @return String[] - информация о файле [файл1, файл2, ...]
+     */
     private String[] getInformationAboutHiddenFiles(){
         try {
             String content = new String(Files.readAllBytes(archive.toPath()), StandardCharsets.ISO_8859_1);
@@ -217,6 +250,9 @@ public class MainController {
         }
     }
 
+    /**
+     * Сохраняет открытый массив в новый, либо перезаписывает выбранный
+     */
     @FXML
     void saveAs(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
