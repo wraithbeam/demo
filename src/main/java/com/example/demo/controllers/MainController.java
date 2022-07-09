@@ -45,6 +45,9 @@ public class MainController {
     private MenuItem menuBtnExit;
 
     @FXML
+    private Button buttonRepair;
+
+    @FXML
     private MenuItem menuBtnOpenArchive;
 
     @FXML
@@ -103,6 +106,7 @@ public class MainController {
         tableInfo.setItems(filesFX);
         buttonAdd.setDisable(false);
         buttonExtract.setDisable(false);
+        buttonRepair.setDisable(false);
     }
 
     /**
@@ -159,7 +163,7 @@ public class MainController {
         Charset charset = StandardCharsets.ISO_8859_1; //Кодировка для передачи файлов
 
         if (files != null) {
-            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(charset); //Ключ для поиска данных
+            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(StandardCharsets.ISO_8859_1); //Ключ для поиска данных
             String keySeparator = "zr8ZTm"; //Ключ, разделяющий поля, описывающий файл: название, вес и т.п.
             for (File file : files) {
                 try {
@@ -268,6 +272,23 @@ public class MainController {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Отчищает архив от скрытых файлов и восстанавливает его работу
+     */
+    @FXML
+    void repairArchive(ActionEvent event) {
+        try {
+            String content = new String(Files.readAllBytes(archive.toPath()), StandardCharsets.ISO_8859_1);
+            String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
+            filesInfo = ArrayUtils.remove(filesInfo, 1);
+            Files.write(archive.toPath(), filesInfo[0].getBytes(StandardCharsets.ISO_8859_1));
+        }
+        catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
     }
 
     @FXML
