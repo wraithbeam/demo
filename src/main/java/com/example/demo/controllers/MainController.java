@@ -97,6 +97,8 @@ public class MainController {
         }
 
         tableInfo.setItems(filesFX);
+        buttonAdd.setDisable(false);
+        buttonExtract.setDisable(false);
     }
 
     private void tableAddElement(FileFX fileFX){
