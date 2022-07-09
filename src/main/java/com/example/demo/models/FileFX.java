@@ -14,7 +14,20 @@ public class FileFX {
         name = file.getName();
         scope = isHidden ? "hidden" : "public";
         lastUpdate = String.valueOf(file.lastModified());
-        size = file.
+        long bytes = file.length();
+
+        if (bytes / (1024*1024*1024) >= 1) {
+            size = String.format("%.2f", (bytes / (1024 * 1024 * 1024))) + " Gb";
+        }
+        else if (bytes / (1024 * 1024) >= 1){
+            size = String.format("%.2f", (bytes / (1024 * 1024))) + " Mb";
+        }
+        else if (bytes / 1024 >= 1){
+            size = String.format("%.2f", (bytes / 1024)) + " Kb";
+        }
+        else {
+            size = String.format("%.2f", (bytes)) + " Bytes";
+        }
 
     }
 

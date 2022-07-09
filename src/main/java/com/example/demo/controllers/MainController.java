@@ -69,7 +69,8 @@ public class MainController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open Resource File");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Zip Files", "*.zip"),
+                new FileChooser.ExtensionFilter("Zip Files", "*.zip")
+                );
         archive = fileChooser.showOpenDialog(new Stage());
 
         showArchiveInTable();
