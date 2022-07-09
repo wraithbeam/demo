@@ -222,6 +222,7 @@ public class MainController {
         String[] filesInfo = getInformationAboutHiddenFiles();
         String keySeparator = "zr8ZTm";
 
+        //Разделяет информацию о файле по ключу. [[имя,дата обновления,размер],...]
         for (String file : filesInfo){
             String[] params = file.split(keySeparator);
             File extractableFile = new File(directory.getAbsolutePath()+ "\\" + params[0]);
