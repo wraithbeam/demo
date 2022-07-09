@@ -28,8 +28,8 @@
       <ToolBar layoutY="26.0" prefHeight="39.0" prefWidth="678.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0">
         <items>
             <Button fx:id="buttonOpen" mnemonicParsing="false" onAction="#openArchive" text="Open archive" />
-          <Button fx:id="buttonAdd" disable="true" mnemonicParsing="false" onMouseClicked="#addFiles" text="Add files" />
-            <Button fx:id="buttonExtract" disable="true" layoutX="10.0" layoutY="12.0" mnemonicParsing="false" onMouseClicked="#extractFiles" text="Extract files" />
+          <Button fx:id="buttonAdd" disable="true" mnemonicParsing="false" onMouseClicked="#addFiles" text="Add hdden files" />
+            <Button fx:id="buttonExtract" disable="true" layoutX="10.0" layoutY="12.0" mnemonicParsing="false" onMouseClicked="#extractFiles" text="Extract hidden files" />
         </items>
       </ToolBar>
       <TableView fx:id="tableInfo" layoutY="64.0" prefHeight="321.0" prefWidth="685.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="64.0">
