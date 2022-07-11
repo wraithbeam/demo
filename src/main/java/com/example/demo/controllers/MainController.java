@@ -17,17 +17,12 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -76,7 +71,8 @@ public class MainController {
     /**
      * Отображаемый архив
      */
-    private File archive;
+    private File archive = new File("C:\\Users\\vlad\\Desktop\\p.zip");
+    private byte[] allBytes;
 
     /**
      * Запускает форму выбора файла, а затем отображеат ее в таблице
@@ -97,9 +93,6 @@ public class MainController {
         tableInfo.getItems().clear();
 
         for (FileFX fileFX : getFilesFromArchive()){
-            filesFX.add(fileFX);
-        }
-        for (FileFX fileFX : getHiddenFilesFromArchive()){
             filesFX.add(fileFX);
         }
         //Запонение таблицы + активация кнопок управления
@@ -127,25 +120,6 @@ public class MainController {
         }
     }
 
-    /**
-     * Достает СКРЫТЫЕ данные из архива, помещая их в ArrayList
-     * @return ArrayList<FileFX> - содержит всю информацию для отображения в таблице
-     */
-    private ArrayList<FileFX> getHiddenFilesFromArchive(){
-        ArrayList<FileFX> filesFX = new ArrayList<>();
-        for (String info : getInformationAboutHiddenFiles()){
-            String[] params = info.split("zr8ZTm");
-
-            FileFX fileFX = new FileFX();
-            fileFX.setName(params[0]);
-            fileFX.setLastUpdate(new SimpleDateFormat("dd-MM-yyyy HH-mm-ss").format(Long.parseLong(params[1])));
-            fileFX.setSize(Double.parseDouble(params[2]));
-            fileFX.setScope("hidden");
-
-            filesFX.add(fileFX);
-        }
-        return filesFX;
-    }
 
 
     /**
@@ -154,49 +128,90 @@ public class MainController {
      */
     @FXML
     void addFiles(MouseEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Open Resource File");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("All Files", "*.*"));
-        List<File> files = fileChooser.showOpenMultipleDialog(new Stage());
+        try {
 
-        Charset charset = StandardCharsets.ISO_8859_1; //Кодировка для передачи файлов
-
-        if (files != null) {
-            byte[] finalByteCode = "Hk7t5nPyL5cNcHi".getBytes(StandardCharsets.ISO_8859_1); //Ключ для поиска данных
-            String keySeparator = "zr8ZTm"; //Ключ, разделяющий поля, описывающий файл: название, вес и т.п.
-            for (File file : files) {
-                try {
-                    FileFX fileFX = new FileFX(file, true);
+            /*TODO
+                !!Записать файл в архив
+                Сдвинуть оффсет хидера текущего
+                Сдвинуть фсе офсеты
+                Сдвинуть офссет центральной директории
+             */
 
 
-                    //Данные, разграниченные ключом
-                    byte[] fileName = (file.getName() + keySeparator).getBytes(charset);
-                    byte[] lastUpdate = (file.lastModified() + keySeparator).getBytes(charset);
-                    byte[] fileSize = (file.length() + keySeparator).getBytes(charset);
-                    byte[] fileContent = Files.readAllBytes(file.toPath());
+            //Запись файла в архив
+            File file = selectFile(true);
+            byte[] byteCodeOfUserSelectedFile = Files.readAllBytes(file.toPath());
+            int indexOfSecondEntry = findIndexOfEntryHeader(1);
+            writeFileIntoArchive(byteCodeOfUserSelectedFile, indexOfSecondEntry);
 
-                    //Объединение данных в один массив для внедрения в архив
-                    byte[] fileInfo = new byte[1];
-                    fileInfo = joinByteArray(fileName, lastUpdate);
-                    fileInfo = joinByteArray(fileInfo, fileSize);
-                    fileInfo = joinByteArray(fileInfo, fileContent);
 
-                    //Формирование кода вставки
-                    finalByteCode = joinByteArray(finalByteCode, fileInfo);
-                    filesFX.add(fileFX); //Добавление файла в таблицу
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+
+
+            //int indexOfCentralDirectory = findIndexOfByteSequence(new int[]{80, 75, 5, 6}, false);
+            //int indexOfOffsetCentralDirectory = indexOfCentralDirectory + 16;
+        }
+        catch (IOException e){
+            throw new RuntimeException(e.getMessage());
+        }
+
+
+    }
+
+    private void writeFileIntoArchive(byte[] fileCode, int indexOfSeparation){
+
+        byte[] finalArchiveCode = new byte[ fileCode.length + allBytes.length ];
+        for(int i = 0; i < indexOfSeparation; i++) {
+            finalArchiveCode[i] = allBytes[i];
+        }
+        int j = 0;
+        for (int i = indexOfSeparation; i < fileCode.length + indexOfSeparation; i++){
+            finalArchiveCode[i] = fileCode[j++];
+        }
+        j = indexOfSeparation;
+        for(int i = indexOfSeparation + fileCode.length + 1; i < finalArchiveCode.length; i++){
+            finalArchiveCode[i] = allBytes[j++];
+        }
+        try {
+            Files.write(archive.toPath(), finalArchiveCode);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int findIndexOfByteSequence(int[] bytes, boolean fromStartToEnd){
+        if(fromStartToEnd)
+            for(int i = 0; i <= allBytes.length - 4; i++){
+                if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) & (allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
+                    return i;
                 }
             }
-            try {
-                //Внедрение байтового кода в архив
-                Files.write(archive.toPath(), finalByteCode, StandardOpenOption.APPEND);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        else
+            for(int i = allBytes.length - 4; i >= 0; i--){
+                if((allBytes[i] == bytes[3] ) & (allBytes[i-1] == bytes[2]) & (allBytes[i-2] == bytes[1] ) & (allBytes[i-3] == bytes[0])) {
+                    return i - 3;
+                }
             }
+        return -1;
+    }
 
+    /**
+     * Обходит циклом весь файл, начниная с начала,
+     * и находит порядковый номер байта нового Entry.
+     * В случае отсутствия искомого Entry вернет -1
+     * @param indexOfEntry - индекс файла, отсчет от нуля
+     * @return индекс байта начала header`а файла
+     */
+    private int findIndexOfEntryHeader(int indexOfEntry){
+        int[] bytes = {80, 75, 1 ,2};
+        int foundedFiles = -1;
+        for(int i = 0; i <= allBytes.length - 4; i++){
+            if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) &(allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
+                foundedFiles += 1;
+                if(foundedFiles == indexOfEntry)
+                    return i;
+            }
         }
+        return -1;
     }
 
     /**
@@ -223,36 +238,6 @@ public class MainController {
         directoryChooser.setTitle("Select Directory");
         File directory = directoryChooser.showDialog(new Stage());
 
-        String[] filesInfo = getInformationAboutHiddenFiles();
-        String keySeparator = "zr8ZTm";
-
-        //Разделяет информацию о файле по ключу. [[имя,дата обновления,размер],...]
-        for (String file : filesInfo){
-            String[] params = file.split(keySeparator);
-            File extractableFile = new File(directory.getAbsolutePath()+ "\\" + params[0]);
-            try {
-                Files.writeString((extractableFile.toPath()), params[3], StandardCharsets.ISO_8859_1);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-
-    /**
-     * @return String[] - информация о файле [файл1, файл2, ...]
-     */
-    private String[] getInformationAboutHiddenFiles(){
-        try {
-            String content = new String(Files.readAllBytes(archive.toPath()), StandardCharsets.ISO_8859_1);
-            String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
-            filesInfo = ArrayUtils.remove(filesInfo, 0);
-
-            return filesInfo;
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**
@@ -275,29 +260,46 @@ public class MainController {
     }
 
     /**
-     * Отчищает архив от скрытых файлов и восстанавливает его работу
+     * * Использует FileChooser
+     * @return File - выбранный файл
      */
-    @FXML
-    void repairArchive(ActionEvent event) {
-        try {
-            String content = new String(Files.readAllBytes(archive.toPath()), StandardCharsets.ISO_8859_1);
-            String[] filesInfo = content.split("Hk7t5nPyL5cNcHi");
-            filesInfo = ArrayUtils.remove(filesInfo, 1);
-            Files.write(archive.toPath(), filesInfo[0].getBytes(StandardCharsets.ISO_8859_1));
-            tableShowArchive();
-        }
-        catch (Exception e){
-            throw new RuntimeException(e);
-        }
+    private File selectFile(boolean showAllFiles){
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select File to save");
 
+        if(showAllFiles)
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("All Files", "*.*"));
+        else
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Zip Files", "*.zip"));
+
+        return fileChooser.showOpenDialog(new Stage());
+    }
+
+    /**
+     * Использует FileChooser
+     * @return List<File> - выбранные файлы
+     */
+    private List<File> selectFiles(){
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select File to save");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Zip Files", "*.zip")
+        );
+        return fileChooser.showOpenMultipleDialog(new Stage());
     }
 
     @FXML
-    public void initialize() {
+    public void initialize() throws IOException {
         tableColumnScope.setCellValueFactory(new PropertyValueFactory<FileFX, String>("scope"));
         tableColumnName.setCellValueFactory(new PropertyValueFactory<FileFX, String>("name"));
         tableColumnSize.setCellValueFactory(new PropertyValueFactory<FileFX, String>("size"));
         tableColumnLastUpdate.setCellValueFactory(new PropertyValueFactory<FileFX, String>("lastUpdate"));
+
+        //TODO удалить
+        buttonAdd.setDisable(false);
+        allBytes = Files.readAllBytes(archive.toPath());
 
         menuBtnOpenArchive.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
         menuBtnSaveAs.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
