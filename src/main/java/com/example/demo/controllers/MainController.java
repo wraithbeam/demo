@@ -40,9 +40,6 @@ public class MainController {
     private MenuItem menuBtnExit;
 
     @FXML
-    private Button buttonRepair;
-
-    @FXML
     private MenuItem menuBtnOpenArchive;
 
     @FXML
@@ -73,33 +70,33 @@ public class MainController {
      */
     private File archive = new File("C:\\Users\\vlad\\Desktop\\p.zip");
     private byte[] allBytes;
+    private boolean isInFileMoreThanTwoFiles = false;
 
     /**
      * Запускает форму выбора файла, а затем отображеат ее в таблице
      */
     @FXML
     void openArchive(ActionEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Open Resource File");
-        fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Zip Files", "*.zip")
-                );
-        archive = fileChooser.showOpenDialog(new Stage());
-
-        tableShowArchive();
+        try {
+            archive = selectFile(false);
+            allBytes = Files.readAllBytes(archive.toPath());
+            tableShowArchive();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     private void tableShowArchive(){
 
         tableInfo.getItems().clear();
 
-        for (FileFX fileFX : getFilesFromArchive()){
-            filesFX.add(fileFX);
-        }
+        filesFX.addAll(getFilesFromArchive());
+
+        //Todo Написать метод для скрытых файлов
+
         //Запонение таблицы + активация кнопок управления
         tableInfo.setItems(filesFX);
         buttonAdd.setDisable(false);
         buttonExtract.setDisable(false);
-        buttonRepair.setDisable(false);
     }
 
     /**
@@ -107,12 +104,17 @@ public class MainController {
      * @return ArrayList<FileFX> - содержит всю информацию для отображения в таблице
      */
     private ArrayList<FileFX> getFilesFromArchive(){
+        int numberOfFiles = 0;
         try(ZipInputStream zin = new ZipInputStream(new FileInputStream(archive)))
         {
             ArrayList<FileFX> filesFX = new ArrayList<>();
             ZipEntry entry;
             while((entry=zin.getNextEntry())!=null){
                 filesFX.add(new FileFX(entry, false));
+                numberOfFiles += 1;
+            }
+            if(numberOfFiles >= 2){
+                isInFileMoreThanTwoFiles = true;
             }
             return filesFX;
         } catch (IOException e) {
@@ -129,103 +131,95 @@ public class MainController {
     @FXML
     void addFiles(MouseEvent event) {
         try {
-
-            /*TODO
-                !!Записать файл в архив
-                Сдвинуть оффсет хидера текущего
-                Сдвинуть фсе офсеты
-                Сдвинуть офссет центральной директории
-             */
-
-
             //Запись файла в архив
             File file = selectFile(true);
             byte[] byteCodeOfUserSelectedFile = Files.readAllBytes(file.toPath());
-            int indexOfSecondEntry = findIndexOfEntryHeader(1);
-            writeFileIntoArchive(byteCodeOfUserSelectedFile, indexOfSecondEntry);
 
-
-
-
-            //int indexOfCentralDirectory = findIndexOfByteSequence(new int[]{80, 75, 5, 6}, false);
-            //int indexOfOffsetCentralDirectory = indexOfCentralDirectory + 16;
+            int fileSeparator;
+            if(isInFileMoreThanTwoFiles){
+                fileSeparator = findStartIndexForByteSequence(new byte[]{80, 75, 3, 4}, 1);
+            }
+            else {
+                fileSeparator = findStartIndexForByteSequence(new byte[]{80, 75, 1,2});
+            }
+            formatFileCode(byteCodeOfUserSelectedFile, file);
+            writeFileIntoArchive(byteCodeOfUserSelectedFile, fileSeparator);
         }
         catch (IOException e){
             throw new RuntimeException(e.getMessage());
         }
+    }
 
+    private void formatFileCode(byte[] bytes, File file){
 
     }
 
     private void writeFileIntoArchive(byte[] fileCode, int indexOfSeparation){
 
         byte[] finalArchiveCode = new byte[ fileCode.length + allBytes.length ];
-        for(int i = 0; i < indexOfSeparation; i++) {
+        for (int i = 0; i < indexOfSeparation; i++) {
             finalArchiveCode[i] = allBytes[i];
         }
+
         int j = 0;
         for (int i = indexOfSeparation; i < fileCode.length + indexOfSeparation; i++){
             finalArchiveCode[i] = fileCode[j++];
         }
+
         j = indexOfSeparation;
-        for(int i = indexOfSeparation + fileCode.length + 1; i < finalArchiveCode.length; i++){
+        for(int i = indexOfSeparation + fileCode.length; i < finalArchiveCode.length; i++){
             finalArchiveCode[i] = allBytes[j++];
         }
-        try {
-            Files.write(archive.toPath(), finalArchiveCode);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        allBytes = finalArchiveCode;
+        save();
     }
-
-    private int findIndexOfByteSequence(int[] bytes, boolean fromStartToEnd){
-        if(fromStartToEnd)
-            for(int i = 0; i <= allBytes.length - 4; i++){
-                if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) & (allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
-                    return i;
-                }
-            }
-        else
-            for(int i = allBytes.length - 4; i >= 0; i--){
-                if((allBytes[i] == bytes[3] ) & (allBytes[i-1] == bytes[2]) & (allBytes[i-2] == bytes[1] ) & (allBytes[i-3] == bytes[0])) {
-                    return i - 3;
-                }
-            }
-        return -1;
-    }
-
-    /**
-     * Обходит циклом весь файл, начниная с начала,
-     * и находит порядковый номер байта нового Entry.
-     * В случае отсутствия искомого Entry вернет -1
-     * @param indexOfEntry - индекс файла, отсчет от нуля
-     * @return индекс байта начала header`а файла
-     */
-    private int findIndexOfEntryHeader(int indexOfEntry){
-        int[] bytes = {80, 75, 1 ,2};
+    private int findStartIndexForByteSequence(byte[] bytes, int numberOccurrence){
         int foundedFiles = -1;
         for(int i = 0; i <= allBytes.length - 4; i++){
             if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) &(allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
                 foundedFiles += 1;
-                if(foundedFiles == indexOfEntry)
+                if(foundedFiles == numberOccurrence)
                     return i;
             }
         }
         return -1;
     }
+    private int findStartIndexForByteSequence(byte[] bytes){
+        return findStartIndexForByteSequence(bytes, 0);
+    }
 
-    /**
-     * Соеденяет 2 массива byte в один. В порядке отправления
-     * @param byte1
-     * @param byte2
-     * @return byte[] - соедененный массив
-     */
-    private byte[] joinByteArray(byte[] byte1, byte[] byte2) {
+    private void changeOffsets(int lengthOfFile, int startByte){
+        int[] bytesH = {80, 75, 1 ,2};
+        int[] bytesCD = {80, 75, 5 ,6};
+        for(int i = 0; i < allBytes.length - 4; i++){
 
-        return ByteBuffer.allocate(byte1.length + byte2.length)
-                .put(byte1)
-                .put(byte2)
-                .array();
+            if ((allBytes[i] == bytesH[0]) & (allBytes[i+1] == bytesH[1]) &(allBytes[i+2] == bytesH[2] ) & (allBytes[i+3] == bytesH[3])) {
+                i += 42;
+                int hex = lengthOfFile;
+                for (int j = 0; j < 4; j++) {
+                    hex += allBytes[i++];
+                }
+                i-=4;
+                byte[] bytes = ByteBuffer.allocate(4).putInt(hex).array();
+                for (int j = 3; j >= 0; j--, i++) {
+                    allBytes[i] = bytes[j];
+                }
+            }
+
+            if ((allBytes[i] == bytesCD[0]) & (allBytes[i+1] == bytesCD[1]) &(allBytes[i+2] == bytesCD[2] ) & (allBytes[i+3] == bytesCD[3])) {
+                i += 16;
+                int hex = lengthOfFile;
+                for (int j = 0; j < 4; j++) {
+                    hex += allBytes[i++];
+                }
+                i-=4;
+                byte[] bytes = ByteBuffer.allocate(4).putInt(hex).array();
+                for (int j = 3; j >= 0; j--, i++) {
+                    allBytes[i] = bytes[j];
+                }
+            }
+        }
+        save();
     }
 
 
@@ -251,7 +245,6 @@ public class MainController {
                 new FileChooser.ExtensionFilter("Zip Files", "*.zip")
         );
         File file = fileChooser.showOpenDialog(new Stage());
-
         try {
             Files.write(file.toPath(), Files.readAllBytes(archive.toPath()));
         } catch (IOException e) {
@@ -308,6 +301,14 @@ public class MainController {
     @FXML
     void exit(ActionEvent event) {
         System.exit(0);
+    }
+
+    private void save(){
+        try {
+            Files.write(archive.toPath(), allBytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
