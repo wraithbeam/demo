@@ -5,10 +5,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -71,18 +68,32 @@ public class MainController {
     /**
      * Отображаемый архив
      */
-    private File archive = new File("C:\\Users\\vlad\\Desktop\\p.zip");
+    private File archive;
+    /**
+     * Массив байтов архива
+     */
     private byte[] allBytes;
+    /**
+     * bool-параметр: есть ли в архиве хотя бы 2 файла
+     */
     private boolean isInFileMoreThanTwoFiles = false;
+    /**
+     * Ключ для поиска скрытого файла
+     */
     private final byte[] keyStartFile = {78, 70, 1, 2};
-    private final byte[] keyVariableSeparator = {78, 70, 3, 4};
+    /**
+     * Ключ zip local file header
+     */
     private final byte[] bytesH = {80, 75, 1 ,2};
+    /**
+     * Ключ zip central directory
+     */
     private final byte[] bytesCD = {80, 75, 5 ,6};
     private final Charset charset = StandardCharsets.ISO_8859_1;
 
 
     /**
-     * Запускает форму выбора файла, а затем отображеат ее в таблице
+     * Запускает форму выбора файла, а затем отображает ее в таблице, инициализируя archive и allBytes
      */
     @FXML
     void openArchive(ActionEvent event) {
@@ -99,9 +110,9 @@ public class MainController {
         tableInfo.getItems().clear();
 
         filesFX.addAll(getFilesFromArchive());
-        filesFX.addAll(getHiddenFilesFromArchive());
+        filesFX.addAll(getHiddenFilesFromArchive(false));
 
-        //Запонение таблицы + активация кнопок управления
+        //Заполнение таблицы + активация кнопок управления
         tableInfo.setItems(filesFX);
         buttonAdd.setDisable(false);
         buttonExtract.setDisable(false);
@@ -129,91 +140,131 @@ public class MainController {
             throw new RuntimeException(e);
         }
     }
-    private ArrayList<FileFX> getHiddenFilesFromArchive(){
+
+    /**
+     * @param needReturnContent - bool-параметр, отражающий, нужно ли обработать содержимое файла.
+     *                          Требуется для извлечения, но не требуется для отображения в таблице.
+     * @return ArrayList<FileFX> - коллекция всех скрытых файлов
+     */
+    private ArrayList<FileFX> getHiddenFilesFromArchive(boolean needReturnContent){
         ArrayList<FileFX> filesFX = new ArrayList<>();
 
         for (int i = 0; i < allBytes.length - 4; i++) {
+            //Если найден файл по ключу
             if ((allBytes[i] == keyStartFile[0]) & (allBytes[i + 1] == keyStartFile[1]) & (allBytes[i + 2] == keyStartFile[2]) & (allBytes[i + 3] == keyStartFile[3])) {
 
                 FileFX fileFX = new FileFX();
 
-                i+=4;
-                int length = allBytes[i++];
+                i+=4;   //Сдвигаем ключ
+                int length = allBytes[i++]; //Получаем размер названия
                 byte[] nameFile = new byte[length];
                 for (int j = 0; j < length; j++, i++){
-                    nameFile[j] = allBytes[i];
+                    nameFile[j] = allBytes[i]; //Записываем название
                 }
-                System.out.print(new String(nameFile, charset));
 
-                i++;
-                length = allBytes[i++];
+                length = allBytes[i++]; //Получаем размер записи о последнем изменении
                 byte[] lastUpdate = new byte[length];
                 for (int j = 0; j < length; j++, i++){
-                    lastUpdate[j] = allBytes[i];
+                    lastUpdate[j] = allBytes[i]; //Записываем
                 }
-                System.out.print(new String(lastUpdate, charset));
 
-                i++;
-                length = allBytes[i++];
+                length = allBytes[i++]; //Получаем размер записи о весе файла
                 byte[] size = new byte[length];
                 for (int j = 0; j < length; j++, i++){
-                    lastUpdate[j] = allBytes[i];
+                    size[j] = allBytes[i];  //Записываем
                 }
-                i++;
+                if (needReturnContent) {    //Если требуется записать содержимое
+                    //Создаем буфер, высчитывающий размер содержимого из 4 байт
+                    ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+                    for(int j = 0; j < Integer.BYTES; j++, i++){
+                        buffer.put(allBytes[i]);
+                    }
+                    length = buffer.flip().getInt();
+                    System.out.print(length);
 
+                    //Записываем содержимое
+                    byte[] content = new byte[length];
+                    for (int j = 0; j < length; j++, i++){
+                        content[j] = allBytes[i];
+                    }
+                    //Записываем содержимое в класс
+                    fileFX.setContent(content);
+                }
+                //Записываем в класс
                 fileFX.setName(new String(nameFile, charset));
                 fileFX.setScope("hidden");
                 fileFX.setLastUpdate(new String(lastUpdate, charset));
-                fileFX.setSize(ByteBuffer.wrap(size).getDouble());
+                fileFX.setSize(Double.parseDouble(new String(size, charset)));
                 filesFX.add(fileFX);
+                //Цикл на последнем шаге делает лишнюю итерацию, уберем ее
+                //Т.к. ее сделает и основной цикл, и перескочит байт
+                i--;
             }
         }
         return filesFX;
     }
-    private boolean notSeparator(int i) {
-        return !((allBytes[i] == keyVariableSeparator[0]) & (allBytes[i + 1] == keyVariableSeparator[1])
-                & (allBytes[i + 2] == keyVariableSeparator[2]) & (allBytes[i + 3] == keyVariableSeparator[3]));
-    }
 
 
+    /**
+     * Добавляет скрытые файлы в архив
+     */
     @FXML
     void addFiles(MouseEvent event) {
         try {
-            //Запись файла в архив
+            //Выбираем файл для записи
             File file = selectFile(true);
-            filesFX.add(new FileFX(file, true));
+
             byte[] byteCodeOfUserSelectedFile = Files.readAllBytes(file.toPath());
             int fileSeparator; //Индекс, по которому в архив будут записаны данные
 
+            //Место, с которого будет производиться запись
             if(isInFileMoreThanTwoFiles){
+                //Запишет после первого файла
                 fileSeparator = findStartIndexForByteSequence(new byte[]{80, 75, 3, 4}, 1);
             }
             else {
+                //Запишет перед central directory, т.е. после единственного файла
                 fileSeparator = findStartIndexForByteSequence(new byte[]{80, 75, 1,2});
             }
-            byteCodeOfUserSelectedFile = addInfoIntoByteCode(byteCodeOfUserSelectedFile, file);
-            writeFileIntoArchive(byteCodeOfUserSelectedFile, fileSeparator);
-            changeOffsets(byteCodeOfUserSelectedFile.length, 1);
+
+            byteCodeOfUserSelectedFile = addInfoIntoByteCode(byteCodeOfUserSelectedFile, file); //Дополняет код содержимого информацией
+            writeFileIntoArchive(byteCodeOfUserSelectedFile, fileSeparator);    //Записывает код файла в архив
+            changeOffsets(byteCodeOfUserSelectedFile.length, 1); //Передвигает offsets архива
+
+            filesFX.add(new FileFX(file, true));
+
         }
         catch (IOException e){
             throw new RuntimeException(e.getMessage());
         }
     }
 
+    /**
+     * Записывает данные о файлы внутрь его кода.
+     * @param bytes - Массив байтов, куда нужно записать данные о файле
+     * @param file - Файл, который будет описан в массиве байт.
+     * @return массив байт с записанной информацией о файле
+     */
     private byte[] addInfoIntoByteCode(byte[] bytes, File file){
         byte[] nameFile = file.getName().getBytes(charset);
         byte[] lastUpdate = new SimpleDateFormat("dd-MM-yyyy HH-mm-ss").format(
                 new Date(file.lastModified())).getBytes(charset);
-        byte[] size = String.valueOf(file.length()).getBytes(charset);
+        byte[] size =  String.valueOf(file.length()).getBytes(charset);
+        byte[] contentLength = ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array();
 
-        return joinByteArray(new byte[][]{keyStartFile,
+        return  joinByteArray(new byte[][]{keyStartFile,
                 new byte[]{(byte) nameFile.length}, nameFile,
                 new byte[]{(byte) lastUpdate.length}, lastUpdate,
                 new byte[]{(byte) size.length}, size,
-                new byte[]{(byte) bytes.length}, bytes
+                contentLength, bytes
         });
     }
 
+    /**
+     * Внедряет в код архива код файла по заданному разделителю (index local header)
+     * @param fileCode - байтовый массив кода файла
+     * @param indexOfSeparation - индекс, по которому будет вставлен массив
+     */
     private void writeFileIntoArchive(byte[] fileCode, int indexOfSeparation){
 
         byte[] finalArchiveCode = new byte[ fileCode.length + allBytes.length ];
@@ -233,9 +284,20 @@ public class MainController {
         allBytes = finalArchiveCode;
         save();
     }
+
+    /**
+     * Находит индекс байта начала последовательности, по заданному порядковому номеру
+     * @param bytes - последовательность, по которой будет найден индекс
+     * @param numberOccurrence - порядковый номер
+     * @return если такая последовательность не найдена вернет -1
+     */
     private int findStartIndexForByteSequence(byte[] bytes, int numberOccurrence){
         int foundedFiles = -1;
         for(int i = 0; i <= allBytes.length - 4; i++){
+            //Не ищем среди скрытых файлов, поэтому пропустим байты, отведенные для них
+            if ((allBytes[i] == keyStartFile[0]) & (allBytes[i + 1] == keyStartFile[1]) & (allBytes[i + 2] == keyStartFile[2]) & (allBytes[i + 3] == keyStartFile[3])) {
+                i += skipHiddenFiles(i);
+            }
             if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) &(allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
                 foundedFiles += 1;
                 if(foundedFiles == numberOccurrence)
@@ -248,20 +310,32 @@ public class MainController {
         return findStartIndexForByteSequence(bytes, 0);
     }
 
+    /**
+     * Изменяет offset каждого файла архива, после записанного скрытого файла
+     * @param lengthOfFile - вес записываемого файла
+     * @param numberOccurrence - номер файла, после которого был записан файл
+     */
     private void changeOffsets(int lengthOfFile, int numberOccurrence){
         int numberEntry = 0;
         for(int i = 0; i < allBytes.length - 4; i++) {
+            //Не изменяем данные в файле, поэтому пропустим байты, отведенные под него
+            if ((allBytes[i] == keyStartFile[0]) & (allBytes[i + 1] == keyStartFile[1]) & (allBytes[i + 2] == keyStartFile[2]) & (allBytes[i + 3] == keyStartFile[3])) {
+                i += skipHiddenFiles(i);
+            }
+
             if ((allBytes[i] == bytesH[0]) & (allBytes[i + 1] == bytesH[1]) & (allBytes[i + 2] == bytesH[2]) & (allBytes[i + 3] == bytesH[3])) {
                 if (numberEntry < numberOccurrence) {
                     numberEntry++;
                 } else {
-                    i += 42;
-                    int hex = lengthOfFile;
+                    i += 42; //Перейдем к offset
+                    int hex = lengthOfFile; //Изначальный отступ прибавляется к весу файла, поэтому инициализируем начало, как вес файла
                     for (int j = 0; j < 4; j++) {
-                        hex += allBytes[i++];
+                        hex += allBytes[i++]; //Посчитаем его значение
                     }
+
+                    //Запишем новое значение
                     i -= 4;
-                    byte[] bytes = ByteBuffer.allocate(4).putInt(hex).array();
+                    byte[] bytes = ByteBuffer.allocate(Integer.BYTES).putInt(hex).array();
                     for (int j = 3; j >= 0; j--, i++) {
                         allBytes[i] = bytes[j];
                     }
@@ -269,20 +343,42 @@ public class MainController {
             }
 
             if ((allBytes[i] == bytesCD[0]) & (allBytes[i + 1] == bytesCD[1]) & (allBytes[i + 2] == bytesCD[2]) & (allBytes[i + 3] == bytesCD[3])) {
-                i += 16;
-                int hex = lengthOfFile;
+
+                i += 16;//Перейдем к offset
+                int hex = lengthOfFile;//Изначальный отступ прибавляется к весу файла, поэтому инициализируем начало, как вес файла
                 for (int j = 0; j < 4; j++) {
-                    hex += allBytes[i++];
+                    hex += allBytes[i++];//Посчитаем его значение
                 }
+
+                //Запишем новое значение
                 i -= 4;
                 byte[] bytes = ByteBuffer.allocate(4).putInt(hex).array();
                 for (int j = 3; j >= 0; j--, i++) {
                     allBytes[i] = bytes[j];
                 }
+                //Дальше считать не имеет смысла
                 break;
             }
         }
         save();
+    }
+
+    /**
+     * Пропускает скрытые файлы, возвращая индекс их конца
+     * @return индекс конца файлов
+     */
+    private int skipHiddenFiles(int i){
+        i += 4;
+        for (int j = 0; j < 3; j++){
+            int length = allBytes[i++];
+            i += length;
+        }
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        for (int j = 0; j < Integer.BYTES; j++, i++) {
+            buffer.put(allBytes[i]);
+        }
+        i += buffer.flip().getInt();
+        return i;
     }
 
 
@@ -296,6 +392,26 @@ public class MainController {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select Directory");
         File directory = directoryChooser.showDialog(new Stage());
+
+        ArrayList<FileFX> filesFX = getHiddenFilesFromArchive(true);
+        for (FileFX fileFX : filesFX){
+            File file = new File(directory.getAbsolutePath() + "\\" + fileFX.getName());
+            try {
+                Files.write(file.toPath(), fileFX.getContent());
+            }catch (IOException e){
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
+        Alert a = new Alert(Alert.AlertType.NONE);
+
+        // set alert type
+        a.setAlertType(Alert.AlertType.INFORMATION);
+        a.setTitle("Extract completed!");
+        a.setHeaderText("Extract completed!");
+
+        // show the dialog
+        a.show();
 
     }
 
@@ -323,7 +439,7 @@ public class MainController {
      */
     private File selectFile(boolean showAllFiles){
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Select File to save");
+        fileChooser.setTitle("Select File");
 
         if(showAllFiles)
             fileChooser.getExtensionFilters().addAll(
@@ -342,9 +458,6 @@ public class MainController {
         tableColumnSize.setCellValueFactory(new PropertyValueFactory<>("size"));
         tableColumnLastUpdate.setCellValueFactory(new PropertyValueFactory<>("lastUpdate"));
 
-        //TODO удалить
-        buttonAdd.setDisable(false);
-        allBytes = Files.readAllBytes(archive.toPath());
 
         menuBtnOpenArchive.setAccelerator(new KeyCodeCombination(KeyCode.O, KeyCombination.CONTROL_DOWN));
         menuBtnSaveAs.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN));
@@ -366,7 +479,7 @@ public class MainController {
     /**
      * Соединяет все массивы в один
      * @param bytes - двумерный массив byte[][]
-     * @return byte[] - соедененный массив
+     * @return byte[] - соединенный массив
      */
     private byte[] joinByteArray(byte[][] bytes) {
         int length = 0;
