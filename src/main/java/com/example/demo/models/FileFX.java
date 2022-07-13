@@ -11,6 +11,8 @@ public class FileFX {
     private String lastUpdate;
     private String size;
 
+    private byte[] content;
+
     public FileFX(File file, boolean isHidden) {
         name = file.getName();
         scope = isHidden ? "hidden" : "public";
@@ -46,6 +48,14 @@ public class FileFX {
         else {
             return String.format("%.2f", (value)) + " Bytes";
         }
+    }
+
+    public byte[] getContent() {
+        return content;
+    }
+
+    public void setContent(byte[] content) {
+        this.content = content;
     }
 
     public String getName() {
