@@ -296,7 +296,7 @@ public class MainController {
         for(int i = 0; i <= allBytes.length - 4; i++){
             //Не ищем среди скрытых файлов, поэтому пропустим байты, отведенные для них
             if ((allBytes[i] == keyStartFile[0]) & (allBytes[i + 1] == keyStartFile[1]) & (allBytes[i + 2] == keyStartFile[2]) & (allBytes[i + 3] == keyStartFile[3])) {
-                i += skipHiddenFiles(i);
+                i = skipHiddenFiles(i);
             }
             if ((allBytes[i] == bytes[0]) & (allBytes[i+1] == bytes[1]) &(allBytes[i+2] == bytes[2] ) & (allBytes[i+3] == bytes[3])) {
                 foundedFiles += 1;
