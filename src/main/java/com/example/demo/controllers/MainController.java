@@ -320,7 +320,7 @@ public class MainController {
         for(int i = 0; i < allBytes.length - 4; i++) {
             //Не изменяем данные в файле, поэтому пропустим байты, отведенные под него
             if ((allBytes[i] == keyStartFile[0]) & (allBytes[i + 1] == keyStartFile[1]) & (allBytes[i + 2] == keyStartFile[2]) & (allBytes[i + 3] == keyStartFile[3])) {
-                i += skipHiddenFiles(i);
+                i = skipHiddenFiles(i);
             }
 
             if ((allBytes[i] == bytesH[0]) & (allBytes[i + 1] == bytesH[1]) & (allBytes[i + 2] == bytesH[2]) & (allBytes[i + 3] == bytesH[3])) {
